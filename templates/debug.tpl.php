@@ -1,6 +1,11 @@
 <?php
 //--------------------------------------------------------------------------
 
+if (isset($_GET['ff_debug_remove_cookie'])) {
+	setcookie($_GET['ff_debug_remove_cookie'], '');
+	unset($_COOKIE[$_GET['ff_debug_remove_cookie']]);
+}
+
 function _debug_level($level)
 {
 	static $levels = array(
@@ -9,7 +14,7 @@ function _debug_level($level)
 		SYS_DEBUG => 'DEBUG',
 		SYS_USER  => 'USER'
 	);
-	
+
 	return isset($levels[$level]) ? $levels[$level] : $level;
 }
 
@@ -38,51 +43,56 @@ function _debug_parse_path($file)
 		'System|',
 		'Root|',
 	), $file);
-	
+
 	return explode('|', $file);
 }
 
 function _debug_get_path()
 {
-	if (isset($_GET['debud_set_path']))
+	if ( ! empty($_GET['ff_debug_path']))
 	{
-		setcookie('debud_set_path', $_GET['debud_set_path'], 0, '/');
-		$_COOKIE['debud_set_path'] = $_GET['debud_set_path'];
+		setcookie('ff_debug_path', $_GET['ff_debug_path'], 0, '/');
+		$_COOKIE['ff_debug_path'] = $_GET['ff_debug_path'];
 	}
-	
-	return isset($_COOKIE['debud_set_path']) ? $_COOKIE['debud_set_path'] : '';
+	else
+	{
+		setcookie('ff_debug_path', NULL);
+		unset($_COOKIE['ff_debug_path']);
+	}
+
+	return isset($_COOKIE['ff_debug_path']) ? htmlspecialchars($_COOKIE['ff_debug_path']) : '';
 }
 
 function _debug_var(&$var, $path = '')
 {
 	static $show_path;
-	
+
 	if ($show_path === NULL)
 	{
 		$show_path = _debug_get_path();
 	}
-	
+
 	$type = gettype($var);
-	
+
 	$result = '';
-	
+
 	if (in_array($type, array('object', 'array')))
 	{
 		$gr_result = '';
 		foreach ($var as $k => &$v)
 		{
-			$_path = $path . ($path ? ($type=='array' ? "[{$k}]" : "->$k") : $k);
-			
+			$_path = $path . ($path ? ($type=='array' ? "[{$k}]" : ".$k") : $k);
+
 			if ($show_path)
 			{
 				//echo "$show_path<br>$_path<hr>";
-				if ($path && ! (strpos($show_path, $path) === 0)) continue; 
+				if ($path && ! (strpos($show_path, $path) === 0)) continue;
 			}
 			elseif ($path)
 			{
 				continue;
 			}
-			$gr_result .= "<tr><td class='foton_col1'><a href='?debud_set_path={$_path}'>{$k}</a></td><td class='foton_col2'>" . _debug_var($v, $_path) . "</td></tr>";
+			$gr_result .= "<tr><td class='foton_col1'><a href='?ff_debug_path={$_path}'>{$k}</a></td><td class='foton_col2'>" . _debug_var($v, $_path) . "</td></tr>";
 		}
 		if ($type == 'object')
 		{
@@ -92,7 +102,7 @@ function _debug_var(&$var, $path = '')
 				if ($show_path)
 				{
 					//echo "$show_path<br>$_path<hr>";
-					if ($path && ! (strpos($show_path, $path) === 0)) continue; 
+					if ($path && ! (strpos($show_path, $path) === 0)) continue;
 				}
 				elseif ($path)
 				{
@@ -107,7 +117,7 @@ function _debug_var(&$var, $path = '')
 	}
 	else
 	{
-		
+
 		switch ($type)
 		{
 			case '_LINK_' : $out_var = '_LINK_'; break;
@@ -117,7 +127,7 @@ function _debug_var(&$var, $path = '')
 		}
 		$result .= $type . "</td><td class='foton_{$type}' title='{$path}'><pre>{$out_var}</pre>";
 //		$result .= $type . "</td><td>";
-		
+
 	}
 
 	return $result;
@@ -201,7 +211,7 @@ function _debug_var(&$var, $path = '')
 }
 .foton_debug table table td {
 	border: 1px solid #999 !important;
-	padding: 2px 5px; 
+	padding: 2px 5px;
 }
 .foton_debug table td {
 	background:-webkit-gradient(linear, 0 top, 0 bottom, from(rgba(255,255,255,.5)), to(rgba(255,255,255,0)));
@@ -266,7 +276,7 @@ function _debug_var(&$var, $path = '')
 			</tr>
 		</table>
 	</div>
-	
+
 	<div style="background:#C99">
 		<h5>System log</h5>
 		<table>
@@ -285,9 +295,9 @@ function _debug_var(&$var, $path = '')
 			<? endforeach ?>
 		</table>
 	</div>
-	
-	
-	
+
+
+
 	<div style="background:#79C">
 		<h5>Core objects</h5>
 		<? if($path = _debug_get_path()): ?>
@@ -295,7 +305,7 @@ function _debug_var(&$var, $path = '')
 				<tr>
 					<td>
 						<b><?=$path ?></b>
-						(<a href="?debud_set_path=">Close</a>)
+						(<a href="?ff_debug_remove_cookie=ff_debug_path">Close</a>)
 					</td>
 				</tr>
 			</table>
@@ -308,9 +318,9 @@ function _debug_var(&$var, $path = '')
 		) ?>
 		<?=_debug_var($var) ?>
 	</div>
-	
-	
-	
+
+
+
 	<? if (count($_POST)): ?>
 	<div style="background:#9C9">
 		<h5>POST</h5>
@@ -326,9 +336,9 @@ function _debug_var(&$var, $path = '')
 		</table>
 	</div>
 	<? endif ?>
-	
-	
-	
+
+
+
 	<? if (count($_COOKIE)): ?>
 	<div style="background:#C97">
 		<h5>Cookies</h5>
@@ -338,14 +348,15 @@ function _debug_var(&$var, $path = '')
 			<tr>
 				<td width="1"><?=$i++ ?></td>
 				<td width="1"><?=$key ?></td>
-				<td><?=$val ?></td>
+				<td width="1"><?=htmlspecialchars($val) ?></td>
+				<td><a href="?ff_debug_remove_cookie=<?=$key ?>">remove</a></td>
 			</tr>
 			<? endforeach ?>
 		</table>
 	</div>
 	<? endif ?>
-	
-	
+
+
 	<? if (isset($_SESSION)): ?>
 	<div style="background:#C69">
 		<h5>Session values</h5>
@@ -361,9 +372,9 @@ function _debug_var(&$var, $path = '')
 		</table>
 	</div>
 	<? endif ?>
-	
-	
-	
+
+
+
 	<div style="background:#C9C">
 		<h5>Classes</h5>
 		<table>
@@ -380,9 +391,9 @@ function _debug_var(&$var, $path = '')
 			<? endforeach ?>
 		</table>
 	</div>
-	
-	
-	
+
+
+
 	<div>
 		<h5>Required files</h5>
 		<table>

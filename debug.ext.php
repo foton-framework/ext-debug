@@ -13,7 +13,11 @@ class EXT_Debug
 
 	public function __construct()
 	{
-		if ( ! empty($_COOKIE[$this->_cookie_name]))
+		// if ( ! empty($_COOKIE[$this->_cookie_name]))
+		// {
+		// 	$this->status(TRUE);
+		// }
+		if ( ! empty($_REQUEST[$this->_cookie_name]))
 		{
 			$this->status(TRUE);
 		}
